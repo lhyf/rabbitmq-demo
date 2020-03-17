@@ -9,14 +9,15 @@ import java.util.concurrent.TimeoutException;
 /**
  * RabbitMQ中消息传递模型的核心思想是：生产者不直接发送消息到队列。实际的运行环境中，生产者是不知道消息会发送到那个队列上，
  * 她只会将消息发送到一个交换器，交换器也像一个生产线，她一边接收生产者发来的消息，另外一边则根据交换规则，将消息放到队列中。
- * 交换器必须知道她所接收的消息是什么？它应该被放到那个队列中？它应该被添加到多个队列吗？还是应该丢弃？这些规则都是按照交换器的规则来确定的。
+ * 交换器必须知道她所接收的消息是什么？它应该被放到那个队列中？它应该被添加到多个队列吗？还是应该丢弃？
+ * 这些规则都是按照交换器的规则来确定的。
  */
 public class ReceiveLogs1 {
     private static final String EXCHANGE_NAME = "logs";
 
     public static void main(String[] args) throws IOException, TimeoutException {
         Connection connection = MQConnectionUtil.getConnection();
-        Channel channel = connection.createChannel();
+        final Channel channel = connection.createChannel();
 
          /*
             direct （直连）
@@ -46,5 +47,19 @@ public class ReceiveLogs1 {
         };
 
         channel.basicConsume(queueName, true, consumer);
+
+        // 显式地设置 autoAck 为 false
+        channel.basicConsume(queueName, false, "consumerTag", new DefaultConsumer(channel) {
+
+            @Override
+            public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException {
+                String routingKey = envelope.getRoutingKey();
+                String contentType = properties.getContentType();
+                long deliveryTag = envelope.getDeliveryTag();
+
+                // 显式 ack 操作
+                channel.basicAck(deliveryTag, false);
+            }
+        });
     }
 }

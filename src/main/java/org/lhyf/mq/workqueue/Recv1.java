@@ -11,7 +11,7 @@ public class Recv1 {
 
     public static void main(String[] args) throws IOException, TimeoutException {
         Connection connection = MQConnectionUtil.getConnection();
-        Channel channel = connection.createChannel();
+        final Channel channel = connection.createChannel();
         //声明要关注的队列
         channel.queueDeclare(QUEUE_NAME, true, false, false, null);
 
